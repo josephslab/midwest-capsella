@@ -1,33 +1,28 @@
+library(dplyr)
+library(Matrix)
+library(reshape)
+library(plyr)
 
-#Linear mixed effect model on 1st harvest data that is not sumarised per mean genotype 
-#and instead has all the individuals in. 
-Harv1Individuals<-read.csv ("C:/Users/mill3866/Michigan State University/Chrissy/UrbanPlantProject/Phenotypic data to analyse/1stHarvRformatedSeeds_Nov27.csv")
-#Will need to subset for the midwest GC data only first. 
+#Linear mixed effect model on 1st harvest data
+Harv1Individuals<-read.csv ("../data/1stHarvRformatedSeeds_Nov27.csv")
+
 Harv1Individuals$City<-as.factor(Harv1Individuals$City)
-head(Harv1Individuals)
+#head(Harv1Individuals)
 
 # CREATING Fecundity variable- Fruit count combined with seed count ---------------------------
 
 Harv1Individuals$Fecundity<-Harv1Individuals$Seed_count/5 * Harv1Individuals$N_Fruits
 
-head(Harv1Individuals)
-
 # Bushiness- Branch count and height --------------------------------------
-
-library(dplyr)
 #Scaling phenotypes to have a mean of zero and a std deviation of 1.
 
 Harv1Individuals<-Harv1Individuals %>%
   mutate_at(c("HavHeight_Scaled", "Rosbranches_Scaled", "Caulibranches_Scaled"), ~(scale(.)%>%as.vector))
 
-head(Harv1Individuals)
+#RosetteSTD<-Harv1Individuals$Rosbranches_Scaled
+#CaulineSTD<-Harv1Individuals$Caulibranches_Scaled
+#Height_HarvSTD<-Harv1Individuals$HavHeight_Scaled
 
-
-RosetteSTD<-Harv1Individuals$Rosbranches_Scaled
-CaulineSTD<-Harv1Individuals$Caulibranches_Scaled
-Height_HarvSTD<-Harv1Individuals$HavHeight_Scaled
-
-head(RosetteSTD)
 
 #Clculating a bushyness score= Having them all equally weighted below at 0.5 but could put more weight on rosette branch if
 #we think this is the driving factor for bushiess. 
@@ -41,29 +36,19 @@ head(RosetteSTD)
 #data_Bushiness<-PhenotypesScaled %>% 
 # mutate(BushinessScore = (0.5 * RosetteSTD) - (0.5 * CaulineSTD)-(0.5 * Height_HarvSTD))
 
-Harv1Individuals$BushyScore = (0.5 * RosetteSTD) - (0.5 * CaulineSTD) - (0.5 * Height_HarvSTD)
+Harv1Individuals$BushyScore = Harv1Individuals$Rosbranches_Scaled/2 - Harv1Individuals$Caulibranches_Scaled/2 - Harv1Individuals$HavHeight_Scaled/2
 
-head(Harv1Individuals)
-str(Harv1Individuals)
-Harv1Individuals$City<-as.factor(Harv1Individuals$City)
+write.csv(Harv1Individuals, "../data/FinalDataAll_Nov27.csv")
 
-#write.csv(Harv1Individuals, "C:/Users/mill3866/Michigan State University/Chrissy/UrbanPlantProject/Phenotypic data to analyse/FinalDataAll_Nov27.csv")
-
-Harv1Individuals<-read.csv("C:/Users/mill3866/Michigan State University/Chrissy/UrbanPlantProject/Phenotypic data to analyse/FinalDataAll_Nov27.csv")
-
-head(Harv1Individuals)
 #Subsetting data
 
 Harv1GCInd<- Harv1Individuals[Harv1Individuals$GrowingConditions == 'GC', ]
 
-#Harv1GCMidWestInd<- subset(Harv1GCInd, City != "New York")
 
-head(Harv1GCInd)
 ####Having issues running lmer code below- google states its due to 
 ####how lme4 is installed and gave options. Tried these options below
 ####but nothing is working!!!!
 
-#install.packages("Matrix") #For some reason had to install this first
 
 #if (!require("lme4")) {
 #  install.packages("lme4")
@@ -91,23 +76,13 @@ head(Harv1GCInd)
 #We first looked for univariate outliers within each of the cities.
 
 
-names(Harv1GCInd)
-
+## cutting down the dataset
 Harv1GCInd<-Harv1GCInd[c(4,1,21,2,3,7, 8, 10, 11, 12,13,14,15,24, 27, 29, 30, 31, 32, 33, 36, 38, 39, 40, 44,45)]
-head(Harv1GCInd)
-
-#install.packages("reshape")
-library(reshape)
 
 LongHarv1GCInd<- melt (Harv1GCInd, id = c ("Unique.ID","F2_Plant_ID", "F2_Rep", "City", "Genotype", "GrowingConditions", "ParentGrowingConditions", "ParentBlock", 
                                                          "City_L", "Population", "Individual", "Lat", "Long", "Days_Fower_Cull"),
                              measured = c("Rosette_D", "Height_Flower", "Height_Harvest", "N_Fruits",
                                           "Rosette_branches", "Cauline_branches","DaysFridgetoGerm","DaysPlantToBolt", "DaysBoltToFlower", "Seed_count", "Fecundity", "BushyScore"))
-
-#View(LongHarv1GCMidWestInd)
-
-head(LongHarv1GCInd)
-str(LongHarv1GCInd)
 
 LongHarv1GCInd$Unique.ID<-as.numeric(LongHarv1GCInd$Unique.ID)
 LongHarv1GCInd$F2_Plant_ID<-as.numeric(LongHarv1GCInd$F2_Plant_ID)
@@ -123,16 +98,15 @@ LongHarv1GCInd$City_L<-as.factor(LongHarv1GCInd$City_L)
 LongHarv1GCInd$Population<-as.factor(LongHarv1GCInd$Population)
 LongHarv1GCInd$Individual<-as.factor(LongHarv1GCInd$Individual)
 
-
+#function for looking at outliers
 outfun <- function(x) {
   abs(x-mean(x,na.rm=TRUE)) > 3.0*sd(x,na.rm=TRUE)
 }
+
 dist <-function(x) {
   abs(x-mean(x,na.rm=TRUE))/sd(x,na.rm=TRUE)
 }
-library(plyr)
 
-str(LongHarv1GCInd)
 
 LongHarv1GCInd$value<-as.numeric(LongHarv1GCInd$value)
 
