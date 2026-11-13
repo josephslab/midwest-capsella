@@ -134,7 +134,7 @@ combined_Boxplots <- grid.arrange(
   ncol = 2, padding = unit(1, "cm")
 )
 
-ggsave("Fig2_combined_Boxplots_Varience_600dpi_Oct25.tiff", combined_Boxplots, width = 20, height = 16, dpi = 600)
+ggsave("../figures/figure1_variance_boxplots.png", combined_Boxplots, width = 20, height = 16, dpi = 600)
 ```
 
 ## 4. Generalized Linear Mixed Models (`glmmTMB`)
@@ -209,21 +209,42 @@ res_FlowerTime$lrt
 simulateResiduals(res_FlowerTime$city_model, plot = TRUE)
 ```
 
-## 5. Least-Squares Means (EMMs) Plots (Figure 3)
+## 5. Least-Squares Means (EMMs) Plots with Data Points
 
-Compute marginal means by `City` using `emmeans` and plot Figure 3 panels for Bolting Time, Rosette Diameter, Flowering Time, and Fecundity.
+Compute marginal means by `City` on the response scale using `emmeans` and overlay them with SE error bars on top of the raw jittered data points for Bolting Time, Rosette Diameter, Flowering Time, and Fecundity.
 
 ```{r lsmeans-plots, fig.width=12, fig.height=10}
 city_labels <- c("Detroit", "Grand Rapids", "Kalamazoo", "Madison", "Milwaukee")
 city_fills  <- c("blue", "#06d6a0", "purple", "gold", "#ff6f61")
 city_shapes <- c(21, 24, 22, 23, 25)
 
-plot_lsmeans <- function(model, y_label, plot_title) {
-  emm_df <- as.data.frame(emmeans(model, ~ City))
+plot_lsmeans_with_points <- function(data, y_var, model, y_label, plot_title) {
+  emm_df <- as.data.frame(emmeans(model, ~ City, type = "response"))
+  if ("response" %in% names(emm_df)) {
+    emm_df$emmean <- emm_df$response
+  }
 
-  ggplot(emm_df, aes(x = City, y = emmean)) +
-    geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE, color = City), width = 0.5, linewidth = 0.5) +
-    geom_point(aes(shape = City, colour = City, fill = City), size = 7) +
+  ggplot() +
+    geom_jitter(
+      data   = data,
+      aes(x = City, y = .data[[y_var]]),
+      width  = 0.2,
+      size   = 2,
+      alpha  = 0.45,
+      colour = "grey30"
+    ) +
+    geom_errorbar(
+      data      = emm_df,
+      aes(x = City, ymin = emmean - SE, ymax = emmean + SE),
+      width     = 0.3,
+      linewidth = 0.8,
+      colour    = "black"
+    ) +
+    geom_point(
+      data = emm_df,
+      aes(x = City, y = emmean, shape = City, colour = City, fill = City),
+      size = 7
+    ) +
     scale_colour_manual(values = rep("black", 5), labels = city_labels) +
     scale_fill_manual(values = city_fills, labels = city_labels) +
     scale_shape_manual(values = city_shapes, labels = city_labels) +
@@ -240,17 +261,25 @@ plot_lsmeans <- function(model, y_label, plot_title) {
     labs(x = "City", y = y_label, title = plot_title)
 }
 
-DaysPlantToBolt_plot <- plot_lsmeans(res_Bolt$city_model, "Bolting time (days)", "A")
-Rosette_plot         <- plot_lsmeans(res_Rosette_D$city_model, "Rosette diameter (cm)", "B")
-Flowering_plot       <- plot_lsmeans(res_FlowerTime$city_model, "Flowering time (days)", "C")
-Fecundity_plot       <- plot_lsmeans(res_Fecundity$city_model, "Fecundity", "D")
+DaysPlantToBolt_plot <- plot_lsmeans_with_points(
+  Harv1GCMidWestInd, "DaysPlantToBolt", res_Bolt$city_model, "Bolting time (days)", "A"
+)
+Rosette_plot <- plot_lsmeans_with_points(
+  Harv1GCMidWestInd, "Rosette_D", res_Rosette_D$city_model, "Rosette diameter (cm)", "B"
+)
+Flowering_plot <- plot_lsmeans_with_points(
+  Harv1GCMidWestInd, "FlowerTime", res_FlowerTime$city_model, "Flowering time (days)", "C"
+)
+Fecundity_plot <- plot_lsmeans_with_points(
+  Harv1GCMidWestInd, "Fecundity", res_Fecundity$city_model, "Fecundity", "D"
+)
 
 combined_LSPLOTS <- grid.arrange(
   DaysPlantToBolt_plot, Rosette_plot, Flowering_plot, Fecundity_plot,
   ncol = 2, padding = unit(1, "cm")
 )
 
-ggsave("combined_LSPLOTS_600.tiff", combined_LSPLOTS, width = 20, height = 16, dpi = 600)
+ggsave("../figures/figure2_lsmeans_with_points.png", combined_LSPLOTS, width = 20, height = 16, dpi = 600)
 ```
 
 ## 6. Multiple Testing (FDR) Corrections
