@@ -1,9 +1,19 @@
-#PCA plot Fig 5
+#PCA plot
 
-setwd("C:/Users/mill3866/Michigan State University/Chrissy/UrbanPlantProject/Genotypic data")
+#The sum of the eigenvalues is the same as the sum of the diagonal in the covariance matrix that is created when you use the --make-rel flag in plink. This sum of the diagonal is the overall variability.
+
+#To get the proportion of variance, divide the eigenvalues by this "sum of the diagonal". Alternatively, divide by the sum of the eigenvalues - BUT ONLY if you are sure you have returned all of the principal components (the default in PLINK is just to show the top 20).
+
+#A quick way to get just the diagonals from the plink.rel file is to use the awk code:
+  
+#  awk '{print $NR}' plink.rel > plink.rel.diag
+
+
+
+
 
 CityPCA<-read.csv("C:/Wondering Researcher/Academics/Michigan State University/Chrissy/UrbanPlantProject/Genotypic data/MidwestEigenvec_Feb.csv")
-#head(CityPCA)
+
 
 PCACityExcludingGROutlier <- CityPCA[-c(14), ]
 
