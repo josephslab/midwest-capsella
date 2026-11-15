@@ -19,5 +19,5 @@ module purge
 module load PLINK/2.00a3.7-gfbf-2023a
 plink2 --vcf ../data/midwestCapsella-variant.vcf --set-all-var-ids @:# --indep-pairwise 100 5 0.2 --geno 0.05 --max-alleles 2 --maf 0.05 --allow-extra-chr --make-bed --out ../data/midwestCapsella
 
-plink2 -bfile ../data/midwestCapsella --extract ../data/midwestCapsella.prune.in -pca --allow-extra-chr --out ../data/midwestCapsella-pca
+plink2 -bfile ../data/midwestCapsella --extract ../data/midwestCapsella.prune.in -pca --make-rel --allow-extra-chr --out ../data/midwestCapsella-pca
 
